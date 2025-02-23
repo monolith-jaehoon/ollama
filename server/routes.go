@@ -35,6 +35,7 @@ import (
 	"github.com/ollama/ollama/model/models/mllama"
 	"github.com/ollama/ollama/openai"
 	"github.com/ollama/ollama/server/internal/cache/blob"
+	"github.com/ollama/ollama/server/internal/client/ollama"
 	"github.com/ollama/ollama/template"
 	"github.com/ollama/ollama/types/errtypes"
 	"github.com/ollama/ollama/types/model"
@@ -1093,7 +1094,29 @@ func allowedHostsMiddleware(addr net.Addr) gin.HandlerFunc {
 	}
 }
 
+// HTTP errors
+var (
+	apiErrorInternal = `{"error":{"message":"internal server error"}}`
+)
+
 func (s *Server) GenerateRoutes() http.Handler {
+	handle := func(h func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			err := h(w, r)
+			if err != nil {
+				var oe *ollama.Error
+				if errors.As(err, &oe) {
+					data, err := json.Marshal(oe)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					return
+				}
+			}
+		}
+	}
+
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowWildcard = true
 
