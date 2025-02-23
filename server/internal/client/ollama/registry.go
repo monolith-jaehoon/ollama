@@ -87,18 +87,18 @@ func DefaultCache() (*blob.DiskCache, error) {
 	return blob.Open(dir)
 }
 
-// Error is the standard error returned by Ollama APIs.
-type Error struct {
+// RegistryError is the standard error returned by Ollama APIs.
+type RegistryError struct {
 	Status  int    `json:"-"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-func (e *Error) Error() string {
+func (e *RegistryError) Error() string {
 	return fmt.Sprintf("registry responded with status %d: %s %s", e.Status, e.Code, e.Message)
 }
 
-func (e *Error) LogValue() slog.Value {
+func (e *RegistryError) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Attr{Key: "status", Value: slog.IntValue(e.Status)},
 		slog.Attr{Key: "code", Value: slog.StringValue(e.Code)},
@@ -107,8 +107,8 @@ func (e *Error) LogValue() slog.Value {
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
-func (e *Error) UnmarshalJSON(b []byte) error {
-	type E Error
+func (e *RegistryError) UnmarshalJSON(b []byte) error {
+	type E RegistryError
 	var v struct{ Errors []E }
 	if err := json.Unmarshal(b, &v); err != nil {
 		return err
@@ -116,7 +116,7 @@ func (e *Error) UnmarshalJSON(b []byte) error {
 	if len(v.Errors) == 0 {
 		return fmt.Errorf("no messages in error response: %s", string(b))
 	}
-	*e = Error(v.Errors[0]) // our registry only returns one error.
+	*e = RegistryError(v.Errors[0]) // our registry only returns one error.
 	return nil
 }
 
@@ -366,7 +366,7 @@ func (r *Registry) Push(ctx context.Context, c *blob.DiskCache, name string, p *
 }
 
 func canRetry(err error) bool {
-	var re *Error
+	var re *RegistryError
 	if !errors.As(err, &re) {
 		return false
 	}
@@ -720,7 +720,7 @@ func doOK(c *http.Client, r *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		var re Error
+		var re RegistryError
 		if err := json.Unmarshal(out, &re); err != nil {
 			// Use the raw body if we can't parse it as an error object.
 			re.Message = string(out)

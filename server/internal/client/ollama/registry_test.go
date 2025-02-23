@@ -130,7 +130,7 @@ func okHandler(w http.ResponseWriter, r *http.Request) {
 
 func checkErrCode(t *testing.T, err error, status int, code string) {
 	t.Helper()
-	var e *Error
+	var e *RegistryError
 	if !errors.As(err, &e) || e.Status != status || e.Code != code {
 		t.Errorf("err = %v; want %v %v", err, status, code)
 	}
@@ -645,8 +645,8 @@ func TestCanRetry(t *testing.T) {
 		{ErrCached, false},
 		{ErrManifestInvalid, false},
 		{ErrNameInvalid, false},
-		{&Error{Status: 100}, false},
-		{&Error{Status: 500}, true},
+		{&RegistryError{Status: 100}, false},
+		{&RegistryError{Status: 500}, true},
 	}
 	for _, tt := range cases {
 		if got := canRetry(tt.err); got != tt.want {

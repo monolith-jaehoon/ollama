@@ -695,6 +695,7 @@ func getExistingName(n model.Name) (model.Name, error) {
 func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error {
 	var v api.DeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+		slog.Warn("bad request", "error", err)
 		return err
 	}
 	return s.cache.Unlink(cmp.Or(v.Model, v.Name))
@@ -1100,49 +1101,76 @@ var (
 	apiErrorInternal = `{"error":{"message":"internal server error"}}`
 )
 
-func (s *Server) GenerateRoutes() http.Handler {
-	handle := func(h func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			traceID := r.Header.Get("X-Trace-ID")
-			if traceID == "" {
-				traceID = rand.Text()[0:8]
+type errorHandler func(w http.ResponseWriter, r *http.Request) error
+
+// handle wraps an errorHandler and handles errors by writing an HTTP
+// response.
+//
+// If the error is an ollama.Error, it will be marshalled as JSON and written
+// and the status code will be set to the error's status code.
+// If the error is not an ollama.Error, it will be written as JSON with a
+// status code of 500.
+// If the error is nil, it does nothing.
+func (s *Server) handle(h errorHandler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		traceID := r.Header.Get("X-Trace-ID")
+		if traceID == "" {
+			traceID = rand.Text()[0:8]
+		}
+
+		// TODO(bmizerany): install logger on *Server and stop
+		// using global slog, so we can hook tests up to their
+		// own and correlate logs with specific tests.
+		//
+		// Also, write a test that ensures slog.X is never used
+		// anywhere in the codebase outside of a main package.
+		log := slog.With("traceID", traceID)
+		log.Info("request",
+			"method", r.Method,
+			"url", r.Host,
+			"agent", r.UserAgent(),
+			"remote", r.RemoteAddr,
+		)
+
+		defer func() {
+			pe := recover()
+			if pe != nil {
+				// recover so we can associate the panic with
+				// the request via the traceID, then resume
+				// net/http's panic handling, which will write
+				// a noisy std log with a stack trace for us.
+				//
+				// TODO(bmizerany): We can handle panic logging
+				// and tracing latter in our own slog.Handler.
+				// This is good enought for now.
+				log.Error("request", "panic", pe)
+				panic(pe) // repanic for http.Server's panic handler
 			}
+		}()
 
-			// TODO(bmizerany): install logger on *Server and stop
-			// using global slog, so we can hook tests up to their
-			// own and correlate logs with specific tests.
-			//
-			// Also, write a test that ensures slog.X is never used
-			// anywhere in the codebase outside of a main package.
-			log := slog.With("traceID", traceID)
-			log.Info("request",
-				"method", r.Method,
-				"host", r.Host,
-				"path", r.URL.Path,
-				"agent", r.UserAgent(),
-				"remote", r.RemoteAddr,
-			)
+		err := h(w, r)
+		if err != nil {
+			log.Error("request", "err", err)
 
-			err := h(w, r)
-			if err != nil {
-				var oe *ollama.Error
-				if errors.As(err, &oe) {
-					data, err := json.Marshal(oe)
-					if err != nil {
-						panic(err) // this means we really messed up
-					}
-					w.WriteHeader(cmp.Or(oe.Status, 400))
-					w.Write(data)
-					log.Error("request", "err", oe)
-				} else {
-					http.Error(w, apiErrorInternal, http.StatusInternalServerError)
-					log.Error("request", "err", err)
+			var oe *ollama.Error
+			if errors.As(err, &oe) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(cmp.Or(oe.Status, 400))
+				data, err := json.Marshal(oe)
+				if err != nil {
+					panic(err) // should never happen
 				}
+				w.Write(data)
 				return
 			}
-		}
-	}
 
+			http.Error(w, apiErrorInternal, 500)
+			return
+		}
+	})
+}
+
+func (s *Server) GenerateRoutes() http.Handler {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowWildcard = true
 
@@ -1194,7 +1222,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	// Local model cache management
 	r.POST("/api/pull", s.PullHandler)
 	r.POST("/api/push", s.PushHandler)
-	r.DELETE("/api/delete", gin.WrapF(handle(s.handleModelDelete)))
+	r.DELETE("/api/delete", gin.WrapH(s.handle(s.handleModelDelete)))
 	r.HEAD("/api/tags", s.ListHandler)
 	r.GET("/api/tags", s.ListHandler)
 	r.POST("/api/show", s.ShowHandler)

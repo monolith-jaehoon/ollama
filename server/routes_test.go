@@ -293,6 +293,7 @@ func Test_Routes(t *testing.T) {
 				var errorResp map[string]string
 				err = json.Unmarshal(body, &errorResp)
 				if err != nil {
+					t.Logf("response body: %s", body)
 					t.Fatalf("failed to unmarshal response body: %v", err)
 				}
 
