@@ -690,48 +690,12 @@ func getExistingName(n model.Name) (model.Name, error) {
 	return n, nil
 }
 
-func (s *Server) handleModelDelete(c *gin.Context) {
-	var r api.DeleteRequest
-	if err := c.ShouldBindJSON(&r); errors.Is(err, io.EOF) {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing request body"})
-		return
-	} else if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error {
+	var v api.DeleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+		return err
 	}
-
-	n := model.ParseName(cmp.Or(r.Model, r.Name))
-	if !n.IsValid() {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("name %q is invalid", cmp.Or(r.Model, r.Name))})
-		return
-	}
-
-	n, err := getExistingName(n)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", cmp.Or(r.Model, r.Name))})
-		return
-	}
-
-	m, err := ParseNamedManifest(n)
-	if err != nil {
-		switch {
-		case os.IsNotExist(err):
-			c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("model '%s' not found", cmp.Or(r.Model, r.Name))})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
-		return
-	}
-
-	if err := m.Remove(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := m.RemoveLayers(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	return s.cache.Unlink(cmp.Or(v.Model, v.Name))
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {
@@ -1181,7 +1145,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	// Local model cache management
 	r.POST("/api/pull", s.PullHandler)
 	r.POST("/api/push", s.PushHandler)
-	r.DELETE("/api/delete", s.handleModelDelete)
+	r.DELETE("/api/delete", gin.WrapF(s.handleModelDelete))
 	r.HEAD("/api/tags", s.ListHandler)
 	r.GET("/api/tags", s.ListHandler)
 	r.POST("/api/show", s.ShowHandler)
