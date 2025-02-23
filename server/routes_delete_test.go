@@ -53,7 +53,7 @@ func TestDelete(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-fe7ac77b725cda2ccad03f88a880ecdfd7a33192d6cae08fce2c0ee1455991ed"),
 	})
 
-	w = createRequest(t, s.DeleteHandler, api.DeleteRequest{Name: "test"})
+	w = createRequest(t, s.handleModelDelete, api.DeleteRequest{Name: "test"})
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status code 200, actual %d", w.Code)
@@ -69,7 +69,7 @@ func TestDelete(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-fe7ac77b725cda2ccad03f88a880ecdfd7a33192d6cae08fce2c0ee1455991ed"),
 	})
 
-	w = createRequest(t, s.DeleteHandler, api.DeleteRequest{Name: "test2"})
+	w = createRequest(t, s.handleModelDelete, api.DeleteRequest{Name: "test2"})
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status code 200, actual %d", w.Code)
@@ -103,7 +103,7 @@ func TestDeleteDuplicateLayers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := createRequest(t, s.DeleteHandler, api.DeleteRequest{Name: "test"})
+	w := createRequest(t, s.handleModelDelete, api.DeleteRequest{Name: "test"})
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status code 200, actual %d", w.Code)
 	}

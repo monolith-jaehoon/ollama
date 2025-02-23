@@ -34,6 +34,7 @@ import (
 	"github.com/ollama/ollama/llm"
 	"github.com/ollama/ollama/model/models/mllama"
 	"github.com/ollama/ollama/openai"
+	"github.com/ollama/ollama/server/internal/cache/blob"
 	"github.com/ollama/ollama/template"
 	"github.com/ollama/ollama/types/errtypes"
 	"github.com/ollama/ollama/types/model"
@@ -45,6 +46,8 @@ var mode string = gin.DebugMode
 type Server struct {
 	addr  net.Addr
 	sched *Scheduler
+
+	cache *blob.DiskCache
 }
 
 func init() {
@@ -687,7 +690,7 @@ func getExistingName(n model.Name) (model.Name, error) {
 	return n, nil
 }
 
-func (s *Server) DeleteHandler(c *gin.Context) {
+func (s *Server) handleModelDelete(c *gin.Context) {
 	var r api.DeleteRequest
 	if err := c.ShouldBindJSON(&r); errors.Is(err, io.EOF) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "missing request body"})
@@ -1178,7 +1181,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	// Local model cache management
 	r.POST("/api/pull", s.PullHandler)
 	r.POST("/api/push", s.PushHandler)
-	r.DELETE("/api/delete", s.DeleteHandler)
+	r.DELETE("/api/delete", s.handleModelDelete)
 	r.HEAD("/api/tags", s.ListHandler)
 	r.GET("/api/tags", s.ListHandler)
 	r.POST("/api/show", s.ShowHandler)
