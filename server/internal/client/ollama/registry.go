@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -95,6 +96,14 @@ type Error struct {
 
 func (e *Error) Error() string {
 	return fmt.Sprintf("registry responded with status %d: %s %s", e.Status, e.Code, e.Message)
+}
+
+func (e *Error) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.Attr{Key: "status", Value: slog.IntValue(e.Status)},
+		slog.Attr{Key: "code", Value: slog.StringValue(e.Code)},
+		slog.Attr{Key: "message", Value: slog.StringValue(e.Message)},
+	)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.

@@ -1129,12 +1129,16 @@ func (s *Server) GenerateRoutes() http.Handler {
 				if errors.As(err, &oe) {
 					data, err := json.Marshal(oe)
 					if err != nil {
-						panic("inconceivable")
+						panic(err) // this means we really messed up
 					}
-					return
+					w.WriteHeader(cmp.Or(oe.Status, 400))
+					w.Write(data)
+					log.Error("request", "err", oe)
+				} else {
+					http.Error(w, apiErrorInternal, http.StatusInternalServerError)
+					log.Error("request", "err", err)
 				}
-				http.Error(w, apiErrorInternal, http.StatusInternalServerError)
-				log.Error("request", "err", err)
+				return
 			}
 		}
 	}
@@ -1190,7 +1194,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	// Local model cache management
 	r.POST("/api/pull", s.PullHandler)
 	r.POST("/api/push", s.PushHandler)
-	r.DELETE("/api/delete", gin.WrapF(s.handleModelDelete))
+	r.DELETE("/api/delete", gin.WrapF(handle(s.handleModelDelete)))
 	r.HEAD("/api/tags", s.ListHandler)
 	r.GET("/api/tags", s.ListHandler)
 	r.POST("/api/show", s.ShowHandler)
