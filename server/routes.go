@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -1102,17 +1103,38 @@ var (
 func (s *Server) GenerateRoutes() http.Handler {
 	handle := func(h func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
+			traceID := r.Header.Get("X-Trace-ID")
+			if traceID == "" {
+				traceID = rand.Text()[0:8]
+			}
+
+			// TODO(bmizerany): install logger on *Server and stop
+			// using global slog, so we can hook tests up to their
+			// own and correlate logs with specific tests.
+			//
+			// Also, write a test that ensures slog.X is never used
+			// anywhere in the codebase outside of a main package.
+			log := slog.With("traceID", traceID)
+			log.Info("request",
+				"method", r.Method,
+				"host", r.Host,
+				"path", r.URL.Path,
+				"agent", r.UserAgent(),
+				"remote", r.RemoteAddr,
+			)
+
 			err := h(w, r)
 			if err != nil {
 				var oe *ollama.Error
 				if errors.As(err, &oe) {
 					data, err := json.Marshal(oe)
 					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
+						panic("inconceivable")
 					}
 					return
 				}
+				http.Error(w, apiErrorInternal, http.StatusInternalServerError)
+				log.Error("request", "err", err)
 			}
 		}
 	}
@@ -1121,7 +1143,7 @@ func (s *Server) GenerateRoutes() http.Handler {
 	corsConfig.AllowWildcard = true
 
 	// TODO(bmizerany): We don't need this. Gin makes use do it, but
-	// net/http just works. We should remove it. This statment needs to be
+	// net/http just works. We should remove it. This statement needs to be
 	// verified, though.
 	corsConfig.AllowBrowserExtensions = true
 
