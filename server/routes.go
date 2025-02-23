@@ -1129,7 +1129,14 @@ func allowedHostsMiddleware(addr net.Addr) gin.HandlerFunc {
 func (s *Server) GenerateRoutes() http.Handler {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowWildcard = true
+
+	// TODO(bmizerany): We don't need this. Gin makes use do it, but
+	// net/http just works. We should remove it. This statment needs to be
+	// verified, though.
 	corsConfig.AllowBrowserExtensions = true
+
+	// TODO(bmizerany): This is very simple to do with net/http. We won't
+	// need a "framework" to "help" us with this.
 	corsConfig.AllowHeaders = []string{
 		"Authorization",
 		"Content-Type",
@@ -1151,11 +1158,14 @@ func (s *Server) GenerateRoutes() http.Handler {
 		"x-stainless-custom-poll-interval",
 		"x-stainless-timeout",
 	}
+
+	// TODO(bmizerany): Again, easy enough to do with net/http. We don't
+	// need a "framework" to "help" us with this.
 	corsConfig.AllowOrigins = envconfig.AllowedOrigins()
 
 	r := gin.Default()
 	r.Use(
-		cors.New(corsConfig),
+		cors.New(corsConfig), // remove me
 		allowedHostsMiddleware(s.addr),
 	)
 
