@@ -695,11 +695,7 @@ func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 		return err
 	}
-	err := s.cache.Unlink(cmp.Or(v.Model, v.Name))
-	if errors.Is(err, fs.ErrNotExist) {
-		err = nil
-	}
-	return err
+	return s.cache.Unlink(cmp.Or(v.Model, v.Name))
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {
