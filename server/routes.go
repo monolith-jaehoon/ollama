@@ -1145,18 +1145,18 @@ func (s *Server) GenerateRoutes() http.Handler {
 		"X-Requested-With",
 
 		// OpenAI compatibility headers
-		"x-stainless-lang",
-		"x-stainless-package-version",
-		"x-stainless-os",
-		"x-stainless-arch",
-		"x-stainless-retry-count",
-		"x-stainless-runtime",
-		"x-stainless-runtime-version",
-		"x-stainless-async",
-		"x-stainless-helper-method",
-		"x-stainless-poll-helper",
-		"x-stainless-custom-poll-interval",
-		"x-stainless-timeout",
+		"X-Stainless-Lang",
+		"X-Stainless-Package-Version",
+		"X-Stainless-Os",
+		"X-Stainless-Arch",
+		"X-Stainless-Retry-count",
+		"X-Stainless-Runtime",
+		"X-Stainless-Runtime-Version",
+		"X-Stainless-Async",
+		"X-Stainless-Helper-Method",
+		"X-Stainless-Poll-Helper",
+		"X-Stainless-Custom-Poll-Interval",
+		"X-Stainless-Timeout",
 	}
 
 	// TODO(bmizerany): Again, easy enough to do with net/http. We don't
