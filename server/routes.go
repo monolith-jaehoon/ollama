@@ -1143,6 +1143,10 @@ func (s *Server) handle(h errorHandler) http.Handler {
 			// Catch any panics for logging, and repanic after
 			// logging
 			pe := recover()
+			if pe != nil {
+				// repanics at end of defer
+				errAttr = slog.String("panic", fmt.Sprintf("%v", pe))
+			}
 
 			level := slog.LevelInfo
 			if rec.status >= 400 {
@@ -1159,8 +1163,10 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				// slog.Handler
 				slog.String("traceID", traceID),
 
-				// make any error show up first so it is easy
-				// to spot
+				// Keep errors at the front of the attr line
+				// for easy spotting while debugging.
+				//
+				// This will be a no-op if errAttr is empty.
 				errAttr,
 
 				// HTTP request info
