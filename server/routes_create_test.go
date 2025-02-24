@@ -25,7 +25,7 @@ import (
 
 var stream bool = false
 
-func createBinFile(t *testing.T, kv map[string]any, ti []ggml.Tensor) (string, string) {
+func createBinFile(t *testing.T, kv map[string]any, ti []ggml.Tensor) (name, digest string) {
 	t.Helper()
 	t.Setenv("OLLAMA_MODELS", cmp.Or(os.Getenv("OLLAMA_MODELS"), t.TempDir()))
 
@@ -45,7 +45,7 @@ func createBinFile(t *testing.T, kv map[string]any, ti []ggml.Tensor) (string, s
 		t.Fatal(err)
 	}
 
-	digest, _ := GetSHA256Digest(f)
+	digest, _ = GetSHA256Digest(f)
 	if err := f.Close(); err != nil {
 		t.Fatal(err)
 	}
