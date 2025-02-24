@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -84,10 +83,7 @@ func callHandler(t *testing.T, fn func(c *gin.Context), body any) *httptest.Resp
 		t.Fatal(err)
 	}
 
-	c.Request = &http.Request{
-		Body: io.NopCloser(&b),
-	}
-
+	c.Request = httptest.NewRequestWithContext(t.Context(), "", "/", &b)
 	fn(c)
 	return w.ResponseRecorder
 }
