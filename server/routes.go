@@ -275,7 +275,7 @@ func (s *Server) GenerateHandler(c *gin.Context) {
 
 		var b bytes.Buffer
 		if req.Context != nil {
-			slog.Warn("the context field is deprecated and will be removed in a future version of Ollama")
+			s.log.Warn("the context field is deprecated and will be removed in a future version of Ollama")
 			s, err := r.Detokenize(c.Request.Context(), req.Context)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -292,7 +292,7 @@ func (s *Server) GenerateHandler(c *gin.Context) {
 		prompt = b.String()
 	}
 
-	slog.Debug("generate request", "images", len(images), "prompt", prompt)
+	s.log.Debug("generate request", "images", len(images), "prompt", prompt)
 
 	ch := make(chan any)
 	go func() {
@@ -481,7 +481,7 @@ func (s *Server) EmbedHandler(c *gin.Context) {
 	}
 
 	if err := g.Wait(); err != nil {
-		slog.Error("embedding generation failed", "error", err)
+		s.log.Error("embedding generation failed", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Errorf("failed to generate embeddings: %v", err)})
 		return
 	}
@@ -543,7 +543,7 @@ func (s *Server) EmbeddingsHandler(c *gin.Context) {
 
 	embedding, err := r.Embedding(c.Request.Context(), req.Prompt)
 	if err != nil {
-		slog.Info(fmt.Sprintf("embedding generation failed: %v", err))
+		s.log.Info(fmt.Sprintf("embedding generation failed: %v", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Errorf("failed to generate embedding: %v", err)})
 		return
 	}
@@ -869,13 +869,13 @@ func (s *Server) ListHandler(c *gin.Context) {
 		if m.Config.Digest != "" {
 			f, err := m.Config.Open()
 			if err != nil {
-				slog.Warn("bad manifest filepath", "name", n, "error", err)
+				s.log.Warn("bad manifest filepath", "name", n, "error", err)
 				continue
 			}
 			defer f.Close()
 
 			if err := json.NewDecoder(f).Decode(&cf); err != nil {
-				slog.Warn("bad manifest config", "name", n, "error", err)
+				s.log.Warn("bad manifest config", "name", n, "error", err)
 				continue
 			}
 		}
@@ -968,7 +968,7 @@ func (s *Server) CreateBlobHandler(c *gin.Context) {
 		}
 
 		if _, err := os.Stat(p); errors.Is(err, os.ErrNotExist) {
-			slog.Info("evicting intermediate blob which no longer exists", "digest", ib)
+			s.log.Info("evicting intermediate blob which no longer exists", "digest", ib)
 			delete(intermediateBlobs, c.Param("digest"))
 		} else if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1152,8 +1152,7 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				level = slog.LevelError
 			}
 
-			log := cmp.Or(s.log, slog.Default())
-			log.LogAttrs(r.Context(), level, "http",
+			s.log.LogAttrs(r.Context(), level, "http",
 				// TODO(bmizerany): traceID should be embedded
 				// in context.Context and handled by custom
 				// slog.Handler
