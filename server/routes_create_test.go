@@ -21,7 +21,6 @@ import (
 	"github.com/ollama/ollama/api"
 	"github.com/ollama/ollama/envconfig"
 	"github.com/ollama/ollama/fs/ggml"
-	"github.com/ollama/ollama/server/internal/testutil"
 )
 
 var stream bool = false
@@ -110,7 +109,7 @@ func TestCreateFromBin(t *testing.T) {
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
 
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 
@@ -140,7 +139,7 @@ func TestCreateFromModel(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 
@@ -184,7 +183,7 @@ func TestCreateRemovesLayers(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -235,7 +234,7 @@ func TestCreateUnsetsSystem(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -285,7 +284,7 @@ func TestCreateMergeParameters(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -420,7 +419,7 @@ func TestCreateReplacesMessages(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -527,7 +526,7 @@ func TestCreateTemplateSystem(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -619,7 +618,7 @@ func TestCreateLicenses(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	w := callHandler(t, s.CreateHandler, api.CreateRequest{
@@ -668,7 +667,7 @@ func TestCreateDetectTemplate(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	t.Run("matched", func(t *testing.T) {
 		_, digest := createBinFile(t, ggml.KV{

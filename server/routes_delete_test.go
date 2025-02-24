@@ -95,7 +95,7 @@ func TestDeleteDuplicateLayers(t *testing.T) {
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
 
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	n := model.ParseName("test")
 
@@ -120,4 +120,16 @@ func TestDeleteDuplicateLayers(t *testing.T) {
 	}
 
 	checkFileExists(t, filepath.Join(p, "manifests", "*", "*", "*", "*"), []string{})
+}
+
+func newServerTester(t *testing.T) *Server {
+	dir := t.TempDir()
+	c, err := blob.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &Server{
+		log:   testutil.Slogger(t),
+		cache: c,
+	}
 }
