@@ -699,7 +699,11 @@ func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	name := cmp.Or(v.Model, v.Name)
-	return ollama.Unlink(s.cache, name)
+	err := ollama.Unlink(s.cache, name)
+	if errors.Is(err, fs.ErrNotExist) {
+		return &ollama.Error{Status: 404, Message: fmt.Sprintf("model '%s' not found", name)}
+	}
+	return err
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {

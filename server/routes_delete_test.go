@@ -23,15 +23,7 @@ func TestDelete(t *testing.T) {
 	// TODO(bmizerany): remove this
 	t.Setenv("OLLAMA_MODELS", p)
 
-	c, err := blob.Open(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s := &Server{
-		log:   testutil.Slogger(t),
-		cache: c,
-	}
+	s := newServerTester(t)
 
 	_, digest := createBinFile(t, nil, nil)
 	got := callHandler(t, s.CreateHandler, api.CreateRequest{

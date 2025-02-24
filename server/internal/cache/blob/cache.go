@@ -305,11 +305,7 @@ func (c *DiskCache) Unlink(name string) (err error) {
 	if err != nil {
 		return err
 	}
-	err = os.Remove(manifest)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	return err
+	return os.Remove(manifest)
 }
 
 // GetFile returns the absolute path to the file, in the cache, for the given

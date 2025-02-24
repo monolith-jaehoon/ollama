@@ -309,6 +309,7 @@ type CreateRequest struct {
 
 	// Deprecated: set the model name with Model instead
 	Name string `json:"name"`
+
 	// Deprecated: use Quantize instead
 	Quantization string `json:"quantization,omitempty"`
 }
