@@ -301,7 +301,6 @@ func (c *DiskCache) Link(name string, d Digest) error {
 // It returns an error if the name is invalid or if the link removal encounters
 // any issues.
 func (c *DiskCache) Unlink(name string) (err error) {
-	defer errorfmt("unlink %q: %w", name, &err)
 	manifest, err := c.manifestPath(name)
 	if err != nil {
 		return err

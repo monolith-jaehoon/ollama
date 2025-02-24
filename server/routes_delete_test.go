@@ -83,7 +83,8 @@ func TestDeleteDuplicateLayers(t *testing.T) {
 
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
-	var s Server
+
+	s := &Server{log: testutil.Slogger(t)}
 
 	n := model.ParseName("test")
 

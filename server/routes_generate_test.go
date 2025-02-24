@@ -18,6 +18,7 @@ import (
 	"github.com/ollama/ollama/discover"
 	"github.com/ollama/ollama/fs/ggml"
 	"github.com/ollama/ollama/llm"
+	"github.com/ollama/ollama/server/internal/testutil"
 )
 
 type mockRunner struct {
@@ -67,6 +68,7 @@ func TestGenerateChat(t *testing.T) {
 	}
 
 	s := Server{
+		log: testutil.Slogger(t),
 		sched: &Scheduler{
 			pendingReqCh:  make(chan *LlmRequest, 1),
 			finishedReqCh: make(chan *LlmRequest, 1),
@@ -603,6 +605,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	s := Server{
+		log: testutil.Slogger(t),
 		sched: &Scheduler{
 			pendingReqCh:  make(chan *LlmRequest, 1),
 			finishedReqCh: make(chan *LlmRequest, 1),

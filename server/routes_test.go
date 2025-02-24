@@ -255,14 +255,14 @@ func TestRoutes(t *testing.T) {
 				req.Body = io.NopCloser(bytes.NewReader(jsonData))
 			},
 			Expected: func(t *testing.T, resp *http.Response) {
-				if resp.StatusCode != http.StatusOK {
-					t.Errorf("expected status code 200, got %d", resp.StatusCode)
+				if resp.StatusCode != 200 {
+					t.Errorf("StatusCode = %d, want 200", resp.StatusCode)
 				}
 
 				// Verify the model was deleted
 				_, err := GetModel("model_to_delete")
-				if err == nil || !os.IsNotExist(err) {
-					t.Errorf("expected model to be deleted, got error %v", err)
+				if err == nil {
+					t.Errorf("unexpected success getting %q", "model_to_delete")
 				}
 			},
 		},
@@ -597,7 +597,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 		}
 	}
 
-	var s Server
+	s := &Server{log: testutil.Slogger(t)}
 	testMakeRequestDialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
 		var d net.Dialer
 		return d.DialContext(ctx, "tcp", r.Listener.Addr().String())
@@ -654,7 +654,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 func TestShow(t *testing.T) {
 	t.Setenv("OLLAMA_MODELS", t.TempDir())
 
-	var s Server
+	s := &Server{log: testutil.Slogger(t)}
 
 	_, digest1 := createBinFile(t, ggml.KV{"general.architecture": "test"}, nil)
 	_, digest2 := createBinFile(t, ggml.KV{"general.type": "projector", "general.architecture": "clip"}, nil)

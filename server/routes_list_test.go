@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/ollama/ollama/api"
+	"github.com/ollama/ollama/server/internal/testutil"
 )
 
 func TestList(t *testing.T) {
@@ -28,7 +29,7 @@ func TestList(t *testing.T) {
 		"myhost/mynamespace/lips:code",
 	}
 
-	var s Server
+	s := &Server{log: testutil.Slogger(t)}
 	for _, n := range expectNames {
 		_, digest := createBinFile(t, nil, nil)
 

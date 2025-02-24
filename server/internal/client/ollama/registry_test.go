@@ -21,7 +21,7 @@ import (
 
 	"github.com/ollama/ollama/server/internal/cache/blob"
 	"github.com/ollama/ollama/server/internal/chunks"
-	"github.com/ollama/ollama/server/internal/internal/testutil"
+	"github.com/ollama/ollama/server/internal/testutil"
 )
 
 func TestManifestMarshalJSON(t *testing.T) {
