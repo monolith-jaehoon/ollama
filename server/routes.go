@@ -1103,6 +1103,19 @@ var (
 
 type errorHandler func(w http.ResponseWriter, r *http.Request) error
 
+type responseCodeRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *responseCodeRecorder) WriteHeader(status int) {
+	if r.status == 0 {
+		// Do not override original status code
+		r.status = status
+	}
+	r.ResponseWriter.WriteHeader(status)
+}
+
 // handle wraps an errorHandler and handles errors by writing an HTTP
 // response.
 //
@@ -1118,20 +1131,9 @@ func (s *Server) handle(h errorHandler) http.Handler {
 			traceID = rand.Text()[0:8]
 		}
 
-		// TODO(bmizerany): install logger on *Server and stop
-		// using global slog, so we can hook tests up to their
-		// own and correlate logs with specific tests.
-		//
-		// Also, write a test that ensures slog.X is never used
-		// anywhere in the codebase outside of a main package.
-		log := slog.With("traceID", traceID)
-		log.Info("request",
-			"method", r.Method,
-			"url", r.Host,
-			"agent", r.UserAgent(),
-			"remote", r.RemoteAddr,
-		)
+		rec := &responseCodeRecorder{ResponseWriter: w}
 
+		var err error
 		defer func() {
 			pe := recover()
 			if pe != nil {
@@ -1143,19 +1145,44 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				// TODO(bmizerany): We can handle panic logging
 				// and tracing latter in our own slog.Handler.
 				// This is good enought for now.
-				log.Error("request", "panic", pe)
 				panic(pe) // repanic for http.Server's panic handler
 			}
+
+			level := slog.LevelInfo
+			if rec.status >= 400 {
+				level = slog.LevelWarn
+			}
+			if rec.status >= 500 {
+				level = slog.LevelError
+			}
+
+			// TODO(bmizerany): install logger on *Server and stop
+			// using global slog, so we can hook tests up to their
+			// own and correlate logs with specific tests.
+			//
+			// Also, write a test that ensures slog.X is never used
+			// anywhere in the codebase outside of a main package.
+			slog.LogAttrs(r.Context(), level, "http",
+				// TODO(bmizerany): traceID should be embedded
+				// in context.Context and handled by custom
+				// slog.Handler
+				slog.String("traceID", traceID),
+
+				// HTTP request info
+				slog.String("method", r.Method),
+				slog.Any("url", r.URL),
+				slog.String("query", r.URL.RawQuery),
+				slog.String("remote", r.RemoteAddr),
+				slog.Int("status", cmp.Or(rec.status, 0)),
+			)
+
 		}()
 
-		err := h(w, r)
+		err = h(rec, r)
 		if err != nil {
-			log.Error("request", "err", err)
-
 			var oe *ollama.Error
 			if errors.As(err, &oe) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(cmp.Or(oe.Status, 400))
 				data, err := json.Marshal(oe)
 				if err != nil {
 					panic(err) // should never happen
@@ -1163,7 +1190,6 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				w.Write(data)
 				return
 			}
-
 			http.Error(w, apiErrorInternal, 500)
 			return
 		}
