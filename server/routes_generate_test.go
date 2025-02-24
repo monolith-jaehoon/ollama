@@ -113,7 +113,7 @@ func TestGenerateChat(t *testing.T) {
 		{Name: "output.weight", Shape: []uint64{1}, WriterTo: bytes.NewReader(make([]byte, 4))},
 	})
 
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Model: "test",
 		Files: map[string]string{"file.gguf": digest},
 		Template: `
@@ -133,7 +133,7 @@ func TestGenerateChat(t *testing.T) {
 	}
 
 	t.Run("missing body", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, nil)
+		w := callHandler(t, s.ChatHandler, nil)
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("expected status 400, got %d", w.Code)
 		}
@@ -144,7 +144,7 @@ func TestGenerateChat(t *testing.T) {
 	})
 
 	t.Run("missing model", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{})
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{})
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("expected status 400, got %d", w.Code)
 		}
@@ -159,7 +159,7 @@ func TestGenerateChat(t *testing.T) {
 			"general.architecture": "bert",
 			"bert.pooling_type":    uint32(0),
 		}, []ggml.Tensor{})
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Model:  "bert",
 			Files:  map[string]string{"bert.gguf": digest},
 			Stream: &stream,
@@ -169,7 +169,7 @@ func TestGenerateChat(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", w.Code)
 		}
 
-		w = createRequest(t, s.ChatHandler, api.ChatRequest{
+		w = callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "bert",
 		})
 
@@ -183,7 +183,7 @@ func TestGenerateChat(t *testing.T) {
 	})
 
 	t.Run("load model", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test",
 		})
 
@@ -263,7 +263,7 @@ func TestGenerateChat(t *testing.T) {
 
 	mock.CompletionResponse.Content = "Hi!"
 	t.Run("messages", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test",
 			Messages: []api.Message{
 				{Role: "user", Content: "Hello!"},
@@ -282,7 +282,7 @@ func TestGenerateChat(t *testing.T) {
 		checkChatResponse(t, w.Body, "test", "Hi!")
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Model:  "test-system",
 		From:   "test",
 		System: "You are a helpful assistant.",
@@ -293,7 +293,7 @@ func TestGenerateChat(t *testing.T) {
 	}
 
 	t.Run("messages with model system", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test-system",
 			Messages: []api.Message{
 				{Role: "user", Content: "Hello!"},
@@ -314,7 +314,7 @@ func TestGenerateChat(t *testing.T) {
 
 	mock.CompletionResponse.Content = "Abra kadabra!"
 	t.Run("messages with system", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test-system",
 			Messages: []api.Message{
 				{Role: "system", Content: "You can perform magic tricks."},
@@ -335,7 +335,7 @@ func TestGenerateChat(t *testing.T) {
 	})
 
 	t.Run("messages with interleaved system", func(t *testing.T) {
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test-system",
 			Messages: []api.Message{
 				{Role: "user", Content: "Hello!"},
@@ -410,7 +410,7 @@ func TestGenerateChat(t *testing.T) {
 
 		streamRequest := true
 
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test-system",
 			Messages: []api.Message{
 				{Role: "user", Content: "What's the weather in Seattle?"},
@@ -537,7 +537,7 @@ func TestGenerateChat(t *testing.T) {
 			return nil
 		}
 
-		w := createRequest(t, s.ChatHandler, api.ChatRequest{
+		w := callHandler(t, s.ChatHandler, api.ChatRequest{
 			Model: "test-system",
 			Messages: []api.Message{
 				{Role: "user", Content: "What's the weather in Seattle?"},
@@ -649,7 +649,7 @@ func TestGenerate(t *testing.T) {
 		{Name: "output.weight", Shape: []uint64{1}, WriterTo: bytes.NewReader(make([]byte, 4))},
 	})
 
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Model: "test",
 		Files: map[string]string{"file.gguf": digest},
 		Template: `
@@ -665,7 +665,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	t.Run("missing body", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, nil)
+		w := callHandler(t, s.GenerateHandler, nil)
 		if w.Code != http.StatusNotFound {
 			t.Errorf("expected status 404, got %d", w.Code)
 		}
@@ -676,7 +676,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("missing model", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{})
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{})
 		if w.Code != http.StatusNotFound {
 			t.Errorf("expected status 404, got %d", w.Code)
 		}
@@ -692,7 +692,7 @@ func TestGenerate(t *testing.T) {
 			"bert.pooling_type":    uint32(0),
 		}, []ggml.Tensor{})
 
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Model:  "bert",
 			Files:  map[string]string{"file.gguf": digest},
 			Stream: &stream,
@@ -702,7 +702,7 @@ func TestGenerate(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", w.Code)
 		}
 
-		w = createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w = callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model: "bert",
 		})
 
@@ -716,7 +716,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("missing capabilities suffix", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test",
 			Prompt: "def add(",
 			Suffix: "    return c",
@@ -732,7 +732,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("load model", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model: "test",
 		})
 
@@ -813,7 +813,7 @@ func TestGenerate(t *testing.T) {
 
 	mock.CompletionResponse.Content = "Hi!"
 	t.Run("prompt", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test",
 			Prompt: "Hello!",
 			Stream: &stream,
@@ -830,7 +830,7 @@ func TestGenerate(t *testing.T) {
 		checkGenerateResponse(t, w.Body, "test", "Hi!")
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Model:  "test-system",
 		From:   "test",
 		System: "You are a helpful assistant.",
@@ -841,7 +841,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	t.Run("prompt with model system", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-system",
 			Prompt: "Hello!",
 			Stream: &stream,
@@ -860,7 +860,7 @@ func TestGenerate(t *testing.T) {
 
 	mock.CompletionResponse.Content = "Abra kadabra!"
 	t.Run("prompt with system", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-system",
 			Prompt: "Hello!",
 			System: "You can perform magic tricks.",
@@ -879,7 +879,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("prompt with template", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-system",
 			Prompt: "Help me write tests.",
 			System: "You can perform magic tricks.",
@@ -900,7 +900,7 @@ func TestGenerate(t *testing.T) {
 		checkGenerateResponse(t, w.Body, "test-system", "Abra kadabra!")
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Model: "test-suffix",
 		Template: `{{- if .Suffix }}<PRE> {{ .Prompt }} <SUF>{{ .Suffix }} <MID>
 {{- else }}{{ .Prompt }}
@@ -913,7 +913,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	t.Run("prompt with suffix", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-suffix",
 			Prompt: "def add(",
 			Suffix: "    return c",
@@ -929,7 +929,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("prompt without suffix", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-suffix",
 			Prompt: "def add(",
 		})
@@ -944,7 +944,7 @@ func TestGenerate(t *testing.T) {
 	})
 
 	t.Run("raw", func(t *testing.T) {
-		w := createRequest(t, s.GenerateHandler, api.GenerateRequest{
+		w := callHandler(t, s.GenerateHandler, api.GenerateRequest{
 			Model:  "test-system",
 			Prompt: "Help me write tests.",
 			Raw:    true,

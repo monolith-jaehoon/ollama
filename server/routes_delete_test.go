@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/ollama/ollama/api"
+	"github.com/ollama/ollama/server/internal/testutil"
 	"github.com/ollama/ollama/types/model"
 )
 
@@ -19,26 +20,26 @@ func TestDelete(t *testing.T) {
 	p := t.TempDir()
 	t.Setenv("OLLAMA_MODELS", p)
 
-	var s Server
+	s := &Server{log: testutil.Slogger(t)}
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	got := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:  "test",
 		Files: map[string]string{"test.gguf": digest},
 	})
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status code 200, actual %d", w.Code)
+	if got.Code != http.StatusOK {
+		t.Fatalf("expected status code 200, actual %d", got.Code)
 	}
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	got = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:     "test2",
 		Files:    map[string]string{"test.gguf": digest},
 		Template: "{{ .System }} {{ .Prompt }}",
 	})
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status code 200, actual %d", w.Code)
+	if got.Code != http.StatusOK {
+		t.Fatalf("expected status code 200, actual %d", got.Code)
 	}
 
 	checkFileExists(t, filepath.Join(p, "manifests", "*", "*", "*", "*"), []string{
@@ -53,10 +54,9 @@ func TestDelete(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-fe7ac77b725cda2ccad03f88a880ecdfd7a33192d6cae08fce2c0ee1455991ed"),
 	})
 
-	w = createRequest(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test"})
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status code 200, actual %d", w.Code)
+	got = callHandler(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test"})
+	if got.Code != http.StatusOK {
+		t.Fatalf("res.Status = %d, want %d", got.Code, 200)
 	}
 
 	checkFileExists(t, filepath.Join(p, "manifests", "*", "*", "*", "*"), []string{
@@ -69,10 +69,9 @@ func TestDelete(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-fe7ac77b725cda2ccad03f88a880ecdfd7a33192d6cae08fce2c0ee1455991ed"),
 	})
 
-	w = createRequest(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test2"})
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status code 200, actual %d", w.Code)
+	got = callHandler(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test2"})
+	if got.Code != http.StatusOK {
+		t.Fatalf("expected status code 200, actual %d", got.Code)
 	}
 
 	checkFileExists(t, filepath.Join(p, "manifests", "*", "*", "*", "*"), []string{})
@@ -103,7 +102,7 @@ func TestDeleteDuplicateLayers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	w := createRequest(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test"})
+	w := callHandler(t, gin.WrapH(s.handle(s.handleModelDelete)), api.DeleteRequest{Name: "test"})
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status code 200, actual %d", w.Code)
 	}

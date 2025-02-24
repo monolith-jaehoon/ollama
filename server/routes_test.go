@@ -605,7 +605,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 
 	t.Logf("creating")
 	_, digest := createBinFile(t, nil, nil)
-	checkOK(createRequest(t, s.CreateHandler, api.CreateRequest{
+	checkOK(callHandler(t, s.CreateHandler, api.CreateRequest{
 		// Start with the stable name, and later use a case-shuffled
 		// version.
 		Name:   wantStableName,
@@ -615,7 +615,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 	checkManifestList()
 
 	t.Logf("creating (again)")
-	checkOK(createRequest(t, s.CreateHandler, api.CreateRequest{
+	checkOK(callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   name(),
 		Files:  map[string]string{"test.gguf": digest},
 		Stream: &stream,
@@ -623,7 +623,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 	checkManifestList()
 
 	t.Logf("pulling")
-	checkOK(createRequest(t, s.PullHandler, api.PullRequest{
+	checkOK(callHandler(t, s.PullHandler, api.PullRequest{
 		Name:     name(),
 		Stream:   &stream,
 		Insecure: true,
@@ -631,14 +631,14 @@ func TestManifestCaseSensitivity(t *testing.T) {
 	checkManifestList()
 
 	t.Logf("copying")
-	checkOK(createRequest(t, s.CopyHandler, api.CopyRequest{
+	checkOK(callHandler(t, s.CopyHandler, api.CopyRequest{
 		Source:      name(),
 		Destination: name(),
 	}))
 	checkManifestList()
 
 	t.Logf("pushing")
-	rr := createRequest(t, s.PushHandler, api.PushRequest{
+	rr := callHandler(t, s.PushHandler, api.PushRequest{
 		Model:    name(),
 		Insecure: true,
 		Username: "alice",
@@ -658,12 +658,12 @@ func TestShow(t *testing.T) {
 	_, digest1 := createBinFile(t, ggml.KV{"general.architecture": "test"}, nil)
 	_, digest2 := createBinFile(t, ggml.KV{"general.type": "projector", "general.architecture": "clip"}, nil)
 
-	createRequest(t, s.CreateHandler, api.CreateRequest{
+	callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:  "show-model",
 		Files: map[string]string{"model.gguf": digest1, "projector.gguf": digest2},
 	})
 
-	w := createRequest(t, s.ShowHandler, api.ShowRequest{
+	w := callHandler(t, s.ShowHandler, api.ShowRequest{
 		Name: "show-model",
 	})
 

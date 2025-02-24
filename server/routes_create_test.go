@@ -71,7 +71,7 @@ func (t *responseRecorder) CloseNotify() <-chan bool {
 	return make(chan bool)
 }
 
-func createRequest(t *testing.T, fn func(*gin.Context), body any) *httptest.ResponseRecorder {
+func callHandler(t *testing.T, fn func(c *gin.Context), body any) *httptest.ResponseRecorder {
 	t.Helper()
 	// if OLLAMA_MODELS is not set, set it to the temp directory
 	t.Setenv("OLLAMA_MODELS", cmp.Or(os.Getenv("OLLAMA_MODELS"), t.TempDir()))
@@ -115,7 +115,7 @@ func TestCreateFromBin(t *testing.T) {
 
 	_, digest := createBinFile(t, nil, nil)
 
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   "test",
 		Files:  map[string]string{"test.gguf": digest},
 		Stream: &stream,
@@ -145,7 +145,7 @@ func TestCreateFromModel(t *testing.T) {
 
 	_, digest := createBinFile(t, nil, nil)
 
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   "test",
 		Files:  map[string]string{"test.gguf": digest},
 		Stream: &stream,
@@ -159,7 +159,7 @@ func TestCreateFromModel(t *testing.T) {
 		filepath.Join(p, "manifests", "registry.ollama.ai", "library", "test", "latest"),
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   "test2",
 		From:   "test",
 		Stream: &stream,
@@ -188,7 +188,7 @@ func TestCreateRemovesLayers(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:     "test",
 		Files:    map[string]string{"test.gguf": digest},
 		Template: "{{ .Prompt }}",
@@ -209,7 +209,7 @@ func TestCreateRemovesLayers(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-bc80b03733773e0728011b2f4adf34c458b400e1aad48cb28d61170f3a2ad2d6"),
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:     "test",
 		Files:    map[string]string{"test.gguf": digest},
 		Template: "{{ .System }} {{ .Prompt }}",
@@ -239,7 +239,7 @@ func TestCreateUnsetsSystem(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   "test",
 		Files:  map[string]string{"test.gguf": digest},
 		System: "Say hi!",
@@ -260,7 +260,7 @@ func TestCreateUnsetsSystem(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-f29e82a8284dbdf5910b1555580ff60b04238b8da9d5e51159ada67a4d0d5851"),
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:   "test",
 		Files:  map[string]string{"test.gguf": digest},
 		System: "",
@@ -289,7 +289,7 @@ func TestCreateMergeParameters(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:  "test",
 		Files: map[string]string{"test.gguf": digest},
 		Parameters: map[string]any{
@@ -315,7 +315,7 @@ func TestCreateMergeParameters(t *testing.T) {
 	})
 
 	// in order to merge parameters, the second model must be created FROM the first
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name: "test2",
 		From: "test",
 		Parameters: map[string]any{
@@ -373,7 +373,7 @@ func TestCreateMergeParameters(t *testing.T) {
 	}
 
 	// slices are replaced
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name: "test2",
 		From: "test",
 		Parameters: map[string]any{
@@ -424,7 +424,7 @@ func TestCreateReplacesMessages(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:  "test",
 		Files: map[string]string{"test.gguf": digest},
 		Messages: []api.Message{
@@ -458,7 +458,7 @@ func TestCreateReplacesMessages(t *testing.T) {
 		filepath.Join(p, "blobs", "sha256-e0e27d47045063ccb167ae852c51d49a98eab33fabaee4633fdddf97213e40b5"),
 	})
 
-	w = createRequest(t, s.CreateHandler, api.CreateRequest{
+	w = callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name: "test2",
 		From: "test",
 		Messages: []api.Message{
@@ -531,7 +531,7 @@ func TestCreateTemplateSystem(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:     "test",
 		Files:    map[string]string{"test.gguf": digest},
 		Template: "{{ .System }} {{ .Prompt }}",
@@ -574,7 +574,7 @@ func TestCreateTemplateSystem(t *testing.T) {
 
 	t.Run("incomplete template", func(t *testing.T) {
 		_, digest := createBinFile(t, nil, nil)
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:     "test",
 			Files:    map[string]string{"test.gguf": digest},
 			Template: "{{ .Prompt",
@@ -588,7 +588,7 @@ func TestCreateTemplateSystem(t *testing.T) {
 
 	t.Run("template with unclosed if", func(t *testing.T) {
 		_, digest := createBinFile(t, nil, nil)
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:     "test",
 			Files:    map[string]string{"test.gguf": digest},
 			Template: "{{ if .Prompt }}",
@@ -602,7 +602,7 @@ func TestCreateTemplateSystem(t *testing.T) {
 
 	t.Run("template with undefined function", func(t *testing.T) {
 		_, digest := createBinFile(t, nil, nil)
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:     "test",
 			Files:    map[string]string{"test.gguf": digest},
 			Template: "{{ Prompt }}",
@@ -623,7 +623,7 @@ func TestCreateLicenses(t *testing.T) {
 	var s Server
 
 	_, digest := createBinFile(t, nil, nil)
-	w := createRequest(t, s.CreateHandler, api.CreateRequest{
+	w := callHandler(t, s.CreateHandler, api.CreateRequest{
 		Name:    "test",
 		Files:   map[string]string{"test.gguf": digest},
 		License: []string{"MIT", "Apache-2.0"},
@@ -675,7 +675,7 @@ func TestCreateDetectTemplate(t *testing.T) {
 		_, digest := createBinFile(t, ggml.KV{
 			"tokenizer.chat_template": "{{ bos_token }}{% for message in messages %}{{'<|' + message['role'] + '|>' + '\n' + message['content'] + '<|end|>\n' }}{% endfor %}{% if add_generation_prompt %}{{ '<|assistant|>\n' }}{% else %}{{ eos_token }}{% endif %}",
 		}, nil)
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:   "test",
 			Files:  map[string]string{"test.gguf": digest},
 			Stream: &stream,
@@ -695,7 +695,7 @@ func TestCreateDetectTemplate(t *testing.T) {
 
 	t.Run("unmatched", func(t *testing.T) {
 		_, digest := createBinFile(t, nil, nil)
-		w := createRequest(t, s.CreateHandler, api.CreateRequest{
+		w := callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:   "test",
 			Files:  map[string]string{"test.gguf": digest},
 			Stream: &stream,

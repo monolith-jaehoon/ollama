@@ -50,6 +50,7 @@ type Server struct {
 	sched *Scheduler
 
 	cache *blob.DiskCache
+	log   *slog.Logger
 }
 
 func init() {
@@ -698,7 +699,11 @@ func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error
 		slog.Warn("bad request", "error", err)
 		return err
 	}
-	return s.cache.Unlink(cmp.Or(v.Model, v.Name))
+	err := s.cache.Unlink(cmp.Or(v.Model, v.Name))
+	if err != nil {
+		s.log.Warn("failed to delete model", "error", err)
+	}
+	return err
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {
@@ -1133,20 +1138,11 @@ func (s *Server) handle(h errorHandler) http.Handler {
 
 		rec := &responseCodeRecorder{ResponseWriter: w}
 
-		var err error
+		var errAttr slog.Attr
 		defer func() {
+			// Catch any panics for logging, and repanic after
+			// logging
 			pe := recover()
-			if pe != nil {
-				// recover so we can associate the panic with
-				// the request via the traceID, then resume
-				// net/http's panic handling, which will write
-				// a noisy std log with a stack trace for us.
-				//
-				// TODO(bmizerany): We can handle panic logging
-				// and tracing latter in our own slog.Handler.
-				// This is good enought for now.
-				panic(pe) // repanic for http.Server's panic handler
-			}
 
 			level := slog.LevelInfo
 			if rec.status >= 400 {
@@ -1156,31 +1152,36 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				level = slog.LevelError
 			}
 
-			// TODO(bmizerany): install logger on *Server and stop
-			// using global slog, so we can hook tests up to their
-			// own and correlate logs with specific tests.
-			//
-			// Also, write a test that ensures slog.X is never used
-			// anywhere in the codebase outside of a main package.
-			slog.LogAttrs(r.Context(), level, "http",
+			log := cmp.Or(s.log, slog.Default())
+			log.LogAttrs(r.Context(), level, "http",
 				// TODO(bmizerany): traceID should be embedded
 				// in context.Context and handled by custom
 				// slog.Handler
 				slog.String("traceID", traceID),
 
+				// make any error show up first so it is easy
+				// to spot
+				errAttr,
+
 				// HTTP request info
 				slog.String("method", r.Method),
 				slog.Any("url", r.URL),
 				slog.String("remote", r.RemoteAddr),
-				slog.Int("status", cmp.Or(rec.status, 0)),
+				slog.Int("status", cmp.Or(rec.status, 200)),
 			)
 
+			if pe != nil {
+				panic(pe) // repanic
+			}
 		}()
 
-		err = h(rec, r)
+		err := h(rec, r)
 		if err != nil {
+			errAttr = slog.String("error", err.Error())
+
 			var oe *ollama.Error
 			if errors.As(err, &oe) {
+				w.WriteHeader(cmp.Or(oe.Status, 500))
 				w.Header().Set("Content-Type", "application/json")
 				data, err := json.Marshal(oe)
 				if err != nil {
@@ -1189,8 +1190,8 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				w.Write(data)
 				return
 			}
+
 			http.Error(w, apiErrorInternal, 500)
-			return
 		}
 	})
 }

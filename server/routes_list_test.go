@@ -32,13 +32,13 @@ func TestList(t *testing.T) {
 	for _, n := range expectNames {
 		_, digest := createBinFile(t, nil, nil)
 
-		createRequest(t, s.CreateHandler, api.CreateRequest{
+		callHandler(t, s.CreateHandler, api.CreateRequest{
 			Name:  n,
 			Files: map[string]string{"test.gguf": digest},
 		})
 	}
 
-	w := createRequest(t, s.ListHandler, nil)
+	w := callHandler(t, s.ListHandler, nil)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status code 200, actual %d", w.Code)
 	}
