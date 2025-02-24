@@ -545,7 +545,7 @@ func absJoin(pp ...string) string {
 //	                }
 //	        }()
 //	}
-func errorfmt(format string, args ...interface{}) {
+func errorfmt(format string, args ...any) {
 	for i := range args {
 		p, ok := args[i].(*error)
 		if ok && *p != nil {
