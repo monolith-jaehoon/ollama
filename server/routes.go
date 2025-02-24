@@ -1171,7 +1171,6 @@ func (s *Server) handle(h errorHandler) http.Handler {
 				// HTTP request info
 				slog.String("method", r.Method),
 				slog.Any("url", r.URL),
-				slog.String("query", r.URL.RawQuery),
 				slog.String("remote", r.RemoteAddr),
 				slog.Int("status", cmp.Or(rec.status, 0)),
 			)
