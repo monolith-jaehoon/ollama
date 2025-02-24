@@ -122,7 +122,7 @@ func (e *RegistryError) UnmarshalJSON(b []byte) error {
 
 // TODO(bmizerany): make configurable on [Registry]
 var defaultName = func() names.Name {
-	n := names.Parse("ollama.com/library/_:latest")
+	n := names.Parse("registry.ollama.ai/library/_:latest")
 	if !n.IsFullyQualified() {
 		panic("default name is not fully qualified")
 	}
@@ -525,6 +525,16 @@ func (r *Registry) Pull(ctx context.Context, c *blob.DiskCache, name string) err
 
 	// commit the manifest with a link
 	return c.Link(m.Name, md)
+}
+
+// Unlink is like [blob.DiskCache.Unlink], but makes name fully qualified
+// before attempting to unlink the model.
+func Unlink(c *blob.DiskCache, name string) error {
+	_, n, _, err := parseName(name)
+	if err != nil {
+		return err
+	}
+	return c.Unlink(n.String())
 }
 
 // Manifest represents a [ollama.com/manifest].

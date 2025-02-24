@@ -699,11 +699,7 @@ func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	name := cmp.Or(v.Model, v.Name)
-	err := s.cache.Unlink(name)
-	if err != nil {
-		return fmt.Errorf("error deleting model: %q: %w", name, err)
-	}
-	return nil
+	return ollama.Unlink(s.cache, name)
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {

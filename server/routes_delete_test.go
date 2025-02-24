@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/ollama/ollama/api"
+	"github.com/ollama/ollama/server/internal/cache/blob"
 	"github.com/ollama/ollama/server/internal/testutil"
 	"github.com/ollama/ollama/types/model"
 )
@@ -18,9 +19,19 @@ func TestDelete(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	p := t.TempDir()
+
+	// TODO(bmizerany): remove this
 	t.Setenv("OLLAMA_MODELS", p)
 
-	s := &Server{log: testutil.Slogger(t)}
+	c, err := blob.Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := &Server{
+		log:   testutil.Slogger(t),
+		cache: c,
+	}
 
 	_, digest := createBinFile(t, nil, nil)
 	got := callHandler(t, s.CreateHandler, api.CreateRequest{
