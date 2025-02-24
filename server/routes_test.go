@@ -23,7 +23,6 @@ import (
 	"github.com/ollama/ollama/api"
 	"github.com/ollama/ollama/fs/ggml"
 	"github.com/ollama/ollama/openai"
-	"github.com/ollama/ollama/server/internal/testutil"
 	"github.com/ollama/ollama/types/model"
 	"github.com/ollama/ollama/version"
 )
@@ -481,7 +480,7 @@ func TestRoutes(t *testing.T) {
 
 	t.Setenv("OLLAMA_MODELS", t.TempDir())
 
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 	router := s.GenerateRoutes()
 
 	httpSrv := httptest.NewServer(router)
@@ -597,7 +596,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 		}
 	}
 
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 	testMakeRequestDialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
 		var d net.Dialer
 		return d.DialContext(ctx, "tcp", r.Listener.Addr().String())
@@ -654,7 +653,7 @@ func TestManifestCaseSensitivity(t *testing.T) {
 func TestShow(t *testing.T) {
 	t.Setenv("OLLAMA_MODELS", t.TempDir())
 
-	s := &Server{log: testutil.Slogger(t)}
+	s := newServerTester(t)
 
 	_, digest1 := createBinFile(t, ggml.KV{"general.architecture": "test"}, nil)
 	_, digest2 := createBinFile(t, ggml.KV{"general.type": "projector", "general.architecture": "clip"}, nil)
