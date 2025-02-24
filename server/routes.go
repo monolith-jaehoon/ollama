@@ -1098,7 +1098,7 @@ func allowedHostsMiddleware(addr net.Addr) gin.HandlerFunc {
 
 // HTTP errors
 var (
-	apiErrorInternal = `{"error":{"message":"internal server error"}}`
+	apiErrorInternal = `{"error":"internal server error"}`
 )
 
 type errorHandler func(w http.ResponseWriter, r *http.Request) error
