@@ -300,7 +300,12 @@ func (c *DiskCache) Link(name string, d Digest) error {
 //
 // It returns an error if the name is invalid or if the link removal encounters
 // any issues.
-func (c *DiskCache) Unlink(name string) error {
+func (c *DiskCache) Unlink(name string) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("unlink %q: %w", name, err)
+		}
+	}()
 	manifest, err := c.manifestPath(name)
 	if err != nil {
 		return err
@@ -532,4 +537,24 @@ func absJoin(pp ...string) string {
 		panic(err)
 	}
 	return abs
+}
+
+// errorfmt sets the first arg of type *error to a new error with the given
+// format and args. It is a convenience function for setting the error message like:
+//
+//	func f() (err error) {
+//	        defer func() {
+//	                if err != nil {
+//	                      err = fmt.Errorf("error processing %s: %w", someID, err)
+//	                }
+//	        }()
+//	}
+func errorfmt(format string, args ...interface{}) {
+	for i := range args {
+		p, ok := args[i].(*error)
+		if ok {
+			args[i] = *p
+		}
+		*p = fmt.Errorf(format, args...)
+	}
 }

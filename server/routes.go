@@ -696,14 +696,9 @@ func getExistingName(n model.Name) (model.Name, error) {
 func (s *Server) handleModelDelete(w http.ResponseWriter, r *http.Request) error {
 	var v api.DeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
-		slog.Warn("bad request", "error", err)
 		return err
 	}
-	err := s.cache.Unlink(cmp.Or(v.Model, v.Name))
-	if err != nil {
-		s.log.Warn("failed to delete model", "error", err)
-	}
-	return err
+	return s.cache.Unlink(cmp.Or(v.Model, v.Name))
 }
 
 func (s *Server) ShowHandler(c *gin.Context) {

@@ -23,6 +23,7 @@ import (
 	"github.com/ollama/ollama/api"
 	"github.com/ollama/ollama/fs/ggml"
 	"github.com/ollama/ollama/openai"
+	"github.com/ollama/ollama/server/internal/testutil"
 	"github.com/ollama/ollama/types/model"
 	"github.com/ollama/ollama/version"
 )
@@ -91,7 +92,7 @@ func equalStringSlices(a, b []string) bool {
 	return true
 }
 
-func Test_Routes(t *testing.T) {
+func TestRoutes(t *testing.T) {
 	type testCase struct {
 		Name     string
 		Method   string
@@ -103,7 +104,7 @@ func Test_Routes(t *testing.T) {
 	createTestModel := func(t *testing.T, name string) {
 		t.Helper()
 
-		_, digest := createTestFile(t, "ollama-model")
+		_, digest := createTestFile(t, "ollama_model")
 
 		fn := func(resp api.ProgressResponse) {
 			t.Logf("Status: %s", resp.Status)
@@ -209,7 +210,7 @@ func Test_Routes(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/api/tags",
 			Setup: func(t *testing.T, req *http.Request) {
-				createTestModel(t, "test-model")
+				createTestModel(t, "test_model")
 			},
 			Expected: func(t *testing.T, resp *http.Response) {
 				contentType := resp.Header.Get("Content-Type")
@@ -231,8 +232,8 @@ func Test_Routes(t *testing.T) {
 					t.Fatalf("failed to unmarshal response body: %v", err)
 				}
 
-				if len(modelList.Models) != 1 || modelList.Models[0].Name != "test-model:latest" {
-					t.Errorf("expected model 'test-model:latest', got %v", modelList.Models)
+				if len(modelList.Models) != 1 || modelList.Models[0].Name != "test_model:latest" {
+					t.Errorf("expected model 'test_model:latest', got %v", modelList.Models)
 				}
 			},
 		},
@@ -241,10 +242,10 @@ func Test_Routes(t *testing.T) {
 			Method: http.MethodDelete,
 			Path:   "/api/delete",
 			Setup: func(t *testing.T, req *http.Request) {
-				createTestModel(t, "model-to-delete")
+				createTestModel(t, "model_to_delete")
 
 				deleteReq := api.DeleteRequest{
-					Name: "model-to-delete",
+					Name: "model_to_delete",
 				}
 				jsonData, err := json.Marshal(deleteReq)
 				if err != nil {
@@ -259,19 +260,19 @@ func Test_Routes(t *testing.T) {
 				}
 
 				// Verify the model was deleted
-				_, err := GetModel("model-to-delete")
+				_, err := GetModel("model_to_delete")
 				if err == nil || !os.IsNotExist(err) {
 					t.Errorf("expected model to be deleted, got error %v", err)
 				}
 			},
 		},
 		{
-			Name:   "Delete Non-existent Model",
+			Name:   "Delete Non_existent Model",
 			Method: http.MethodDelete,
 			Path:   "/api/delete",
 			Setup: func(t *testing.T, req *http.Request) {
 				deleteReq := api.DeleteRequest{
-					Name: "non-existent-model",
+					Name: "non_existent_model",
 				}
 				jsonData, err := json.Marshal(deleteReq)
 				if err != nil {
@@ -307,7 +308,7 @@ func Test_Routes(t *testing.T) {
 			Method: http.MethodGet,
 			Path:   "/v1/models",
 			Expected: func(t *testing.T, resp *http.Response) {
-				contentType := resp.Header.Get("Content-Type")
+				contentType := resp.Header.Get("Content_Type")
 				if contentType != "application/json" {
 					t.Errorf("expected content type application/json, got %s", contentType)
 				}
@@ -322,8 +323,8 @@ func Test_Routes(t *testing.T) {
 					t.Fatalf("failed to unmarshal response body: %v", err)
 				}
 
-				if len(modelList.Data) != 1 || modelList.Data[0].Id != "test-model:latest" || modelList.Data[0].OwnedBy != "library" {
-					t.Errorf("expected model 'test-model:latest' owned by 'library', got %v", modelList.Data)
+				if len(modelList.Data) != 1 || modelList.Data[0].Id != "test_model:latest" || modelList.Data[0].OwnedBy != "library" {
+					t.Errorf("expected model 'test_model:latest' owned by 'library', got %v", modelList.Data)
 				}
 			},
 		},
@@ -332,10 +333,10 @@ func Test_Routes(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/create",
 			Setup: func(t *testing.T, req *http.Request) {
-				_, digest := createTestFile(t, "ollama-model")
+				_, digest := createTestFile(t, "ollama_model")
 				stream := false
 				createReq := api.CreateRequest{
-					Name:   "t-bone",
+					Name:   "t_bone",
 					Files:  map[string]string{"test.gguf": digest},
 					Stream: &stream,
 				}
@@ -359,12 +360,12 @@ func Test_Routes(t *testing.T) {
 					t.Errorf("expected status code 200, got %d", resp.StatusCode)
 				}
 
-				model, err := GetModel("t-bone")
+				model, err := GetModel("t_bone")
 				if err != nil {
 					t.Fatalf("failed to get model: %v", err)
 				}
-				if model.ShortName != "t-bone:latest" {
-					t.Errorf("expected model name 't-bone:latest', got %s", model.ShortName)
+				if model.ShortName != "t_bone:latest" {
+					t.Errorf("expected model name 't_bone:latest', got %s", model.ShortName)
 				}
 			},
 		},
@@ -400,7 +401,7 @@ func Test_Routes(t *testing.T) {
 			Method: http.MethodPost,
 			Path:   "/api/show",
 			Setup: func(t *testing.T, req *http.Request) {
-				createTestModel(t, "show-model")
+				createTestModel(t, "show_model")
 				showReq := api.ShowRequest{Model: "show-model"}
 				jsonData, err := json.Marshal(showReq)
 				if err != nil {
@@ -451,10 +452,10 @@ func Test_Routes(t *testing.T) {
 		{
 			Name: "openai retrieve model handler",
 			Setup: func(t *testing.T, req *http.Request) {
-				createTestModel(t, "show-model")
+				createTestModel(t, "show_model")
 			},
 			Method: http.MethodGet,
-			Path:   "/v1/models/show-model",
+			Path:   "/v1/models/show_model",
 			Expected: func(t *testing.T, resp *http.Response) {
 				contentType := resp.Header.Get("Content-Type")
 				if contentType != "application/json" {
@@ -471,8 +472,8 @@ func Test_Routes(t *testing.T) {
 					t.Fatalf("failed to unmarshal response body: %v", err)
 				}
 
-				if retrieveResp.Id != "show-model" || retrieveResp.OwnedBy != "library" {
-					t.Errorf("expected model 'show-model' owned by 'library', got %v", retrieveResp)
+				if retrieveResp.Id != "show_model" || retrieveResp.OwnedBy != "library" {
+					t.Errorf("expected model 'show_model' owned by 'library', got %v", retrieveResp)
 				}
 			},
 		},
@@ -480,7 +481,7 @@ func Test_Routes(t *testing.T) {
 
 	t.Setenv("OLLAMA_MODELS", t.TempDir())
 
-	s := &Server{}
+	s := &Server{log: testutil.Slogger(t)}
 	router := s.GenerateRoutes()
 
 	httpSrv := httptest.NewServer(router)
@@ -659,12 +660,12 @@ func TestShow(t *testing.T) {
 	_, digest2 := createBinFile(t, ggml.KV{"general.type": "projector", "general.architecture": "clip"}, nil)
 
 	callHandler(t, s.CreateHandler, api.CreateRequest{
-		Name:  "show-model",
+		Name:  "show_model",
 		Files: map[string]string{"model.gguf": digest1, "projector.gguf": digest2},
 	})
 
 	w := callHandler(t, s.ShowHandler, api.ShowRequest{
-		Name: "show-model",
+		Name: "show_model",
 	})
 
 	if w.Code != http.StatusOK {
