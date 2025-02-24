@@ -301,11 +301,7 @@ func (c *DiskCache) Link(name string, d Digest) error {
 // It returns an error if the name is invalid or if the link removal encounters
 // any issues.
 func (c *DiskCache) Unlink(name string) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("unlink %q: %w", name, err)
-		}
-	}()
+	defer errorfmt("unlink %q: %w", name, &err)
 	manifest, err := c.manifestPath(name)
 	if err != nil {
 		return err
@@ -552,9 +548,10 @@ func absJoin(pp ...string) string {
 func errorfmt(format string, args ...interface{}) {
 	for i := range args {
 		p, ok := args[i].(*error)
-		if ok {
+		if ok && *p != nil {
 			args[i] = *p
+			*p = fmt.Errorf(format, args...)
+			return
 		}
-		*p = fmt.Errorf(format, args...)
 	}
 }
