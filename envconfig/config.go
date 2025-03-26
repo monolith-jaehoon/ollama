@@ -134,6 +134,16 @@ func LoadTimeout() (loadTimeout time.Duration) {
 	return loadTimeout
 }
 
+func PullTimeout() int {
+	defaultPullTimeout := 30
+	if s := Var("OLLAMA_PULL_TIMEOUT"); s!= "" {
+		if num, err := strconv.Atoi(s); err == nil {
+			return num
+		}
+	}
+	return defaultPullTimeout
+}
+
 func Bool(k string) func() bool {
 	return func() bool {
 		if s := Var(k); s != "" {
@@ -257,6 +267,7 @@ func AsMap() map[string]EnvVar {
 		"OLLAMA_MULTIUSER_CACHE":   {"OLLAMA_MULTIUSER_CACHE", MultiUserCache(), "Optimize prompt caching for multi-user scenarios"},
 		"OLLAMA_CONTEXT_LENGTH":    {"OLLAMA_CONTEXT_LENGTH", ContextLength(), "Context length to use unless otherwise specified (default: 2048)"},
 		"OLLAMA_NEW_ENGINE":        {"OLLAMA_NEW_ENGINE", NewEngine(), "Enable the new Ollama engine"},
+		"OLLAMA_PULL_TIMEOUT":      {"OLLAMA_PULL_TIMEOUT", PullTimeout(), "Timeout of Pull Part of Model"},
 
 		// Informational
 		"HTTP_PROXY":  {"HTTP_PROXY", String("HTTP_PROXY")(), "HTTP proxy"},
