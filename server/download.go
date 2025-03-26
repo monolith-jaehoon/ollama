@@ -299,17 +299,11 @@ func (b *blobDownload) run(ctx context.Context, requestURL *url.URL, opts *regis
 					slog.Info(fmt.Sprintf("%s part %d attempt %d failed: %v, retrying in %s", b.Digest[7:19], part.N, realTry, err, sleep))
 					time.Sleep(sleep)
 
-					lastUpdatedMu.Lock()
-					localLastUpdated := lastUpdated
-					lastUpdatedMu.Unlock()
-					if time.Since(localLastUpdated) < 5*time.Second {
+					if time.Since(lastUpdated) < 5*time.Second {
 						try--
 						slog.Info(fmt.Sprintf("%s part %d wait to finish to download other part", b.Digest[7:19], part.N))
-						for time.Since(localLastUpdated) < 5*time.Second {
+						for time.Since(lastUpdated) < 5*time.Second {
 							time.Sleep(5)
-							lastUpdatedMu.Lock()
-							localLastUpdated = lastUpdated
-							lastUpdatedMu.Unlock()
 						}
 						slog.Info(fmt.Sprintf("%s part %d continue to download", b.Digest[7:19], part.N))
 					}
@@ -384,11 +378,7 @@ func (b *blobDownload) downloadChunk(ctx context.Context, requestURL *url.URL, w
 					return nil
 				}
 
-				lastUpdatedMu.Lock()
-				localLastUpdated := lastUpdated
-				lastUpdatedMu.Unlock()
-
-				if time.Since(localLastUpdated) > 5*time.Second {
+				if time.Since(lastUpdated) > 5*time.Second {
 					const msg = "%s part %d stalled; retrying. If this persists, press ctrl-c to exit, then 'ollama pull' to find a faster connection."
 					slog.Info(fmt.Sprintf(msg, b.Digest[7:19], part.N))
 					lastUpdatedMu.Lock()
